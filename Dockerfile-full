@@ -1,0 +1,64 @@
+FROM python:3.6
+# docker build -t adsantos/keras-complete-rest-api:0.0.1 .
+
+LABEL maintainer="Anderson Santos <adsantos@gmail.com>"
+
+WORKDIR /workspace
+
+COPY . /workspace
+
+# Tensorflow version
+ARG tf_version=1.7.0
+
+# Obtaining and installing Redis
+RUN wget http://download.redis.io/redis-stable.tar.gz && \
+    tar xvzf redis-stable.tar.gz && \
+    cd redis-stable && \
+    make && \
+    make install
+
+# Install Apache
+RUN apt-get update && \
+    apt-get install -y apache2 && \
+    apt-get install -y apache2-dev && \
+    apt-get install nano && \
+    apt-get install pwgen
+
+# Install mod_wsgi
+#RUN apt-get install -y libapache2-mod-wsgi-py3 && a2enmod wsgi
+
+# Install the necessary packages
+RUN pip install --upgrade pip && \
+    #pip install --no-cache-dir virtualenv && \
+    pip install mod_wsgi && \
+    pip install tensorflow==${tf_version} && \
+    pip install Pillow && \
+    pip install flask gevent && \
+    pip install numpy && \
+    pip install scipy h5py && \
+    pip install keras && \
+    pip install imutils requests && \
+    pip install redis
+
+# sym-link
+RUN ln -s /workspace /var/www/html/keras-complete-rest-api
+
+# apache conf
+COPY ./apache.conf /etc/apache2/sites-available/000-default.conf
+
+# *TODO: Add scripts for redis
+ADD scripts/sanity-test.sh /usr/bin/sanity-test
+RUN chmod +x /workspace/scripts/*.sh /usr/bin/sanity-test
+RUN touch /.firstrun
+
+# Command to run
+ENTRYPOINT ["/workspace/scripts/run.sh"]
+CMD [""]
+
+# Expose listen port
+EXPOSE 80
+EXPOSE 5000
+EXPOSE 6379
+
+# Expose our app, data and configuration volumes
+VOLUME ["/data", "/etc/redis", "/var/www/html", "/workspace", "/etc/apache2/sites-available"]

@@ -1,0 +1,22 @@
+version: '3'
+services:
+  redis-srv:
+    image: redis
+    container_name: redis-srv
+    restart: always
+    ports:
+        - 6379:6379
+  apache-keras:
+    build: .
+    container_name: workspace
+    command: "python run_model_server.py"
+    restart: always
+    image: adsantos/apache-keras:0.0.1
+    ports: 
+        - 80:80
+        - 5000:5000
+    volumes:
+        - ./config/apache.conf:/etc/apache2/sites-available/000-default.conf
+        - .:/workspace
+    depends_on:
+        - redis-srv
